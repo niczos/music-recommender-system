@@ -15,9 +15,13 @@ class AudioSample:
             self.sample_rate = sample_rate
         self.temp_dir = temp_dir
 
-    def to_spectrogram(self) -> np.ndarray:
+    def to_spectrogram(self, beginning: float | None = None, end: float | None = None) -> np.ndarray:
+        if beginning is not None and end is not None:
+            audio_sample = self.y[int(beginning * self.sample_rate): int(end * self.sample_rate)]
+        else:
+            audio_sample = self.y.copy()
         # Extract Mel Spectrogram
-        mel_spectrogram = librosa.feature.melspectrogram(y=self.y, sr=self.sample_rate)
+        mel_spectrogram = librosa.feature.melspectrogram(y=audio_sample, sr=self.sample_rate)
 
         # Convert Decibels (Log Scale)
         raw_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
@@ -41,14 +45,13 @@ class AudioSample:
 
 if __name__ == "__main__":
     folder_path = r"/home/nika/music-recommender-system/sample_music/"
-    temp_dir = r"/home/nika/music-recommender-system/sample_music/"
-    #folder_path = r"C:\Users\skrzy\Music\sample_music"
+    temp_dir =  r"/home/nika/music-recommender-system/sample_music/"
     #temp_dir = r"C:\Users\skrzy\Music\sample_music"
-
+    #folder_path = r"C:\Users\skrzy\Music\sample_music"
     filename = "01 - The Golden Age [Beck： Sea Change].wav"
     sample_path = os.path.join(folder_path, filename)
     audio_1 = AudioSample(filepath=sample_path, temp_dir=temp_dir)
-    spec_1 = audio_1.to_spectrogram()
+    spec_1 = audio_1.to_spectrogram(beginning=0, end=15)
     print(spec_1)
     # TODO to nie działa na colabie
     cv2.imshow("Title", spec_1)
