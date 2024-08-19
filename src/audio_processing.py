@@ -7,6 +7,8 @@ import os
 
 class AudioSample:
     def __init__(self, filepath: str, temp_dir: str, sample_rate: int | None = None):
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"No such file: {filepath}")
         self.filepath = filepath
         if sample_rate is None:
             self.y, self.sample_rate = librosa.load(path=self.filepath)
@@ -45,10 +47,9 @@ class AudioSample:
 
 if __name__ == "__main__":
     folder_path = r"/home/nika/music-recommender-system/sample_music/"
-    temp_dir =  r"/home/nika/music-recommender-system/sample_music/"
-    #temp_dir = r"C:\Users\skrzy\Music\sample_music"
-    #folder_path = r"C:\Users\skrzy\Music\sample_music"
-    filename = "01 - The Golden Age [Beck： Sea Change].wav"
+    temp_dir = r"C:\Users\skrzy\Music\sample_music"
+    folder_path = r"C:\Users\skrzy\Music\sample_music"
+    filename = "01 - The Golden Age [Beck： Sea Change].mp3"
     sample_path = os.path.join(folder_path, filename)
     audio_1 = AudioSample(filepath=sample_path, temp_dir=temp_dir)
     spec_1 = audio_1.to_spectrogram(beginning=0, end=15)
