@@ -1,13 +1,13 @@
 import os
 from typing import Callable
 
-from src.consts import IMAGE_SIZE
+from music_recommender.src.consts import IMAGE_SIZE
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from src.audio_processing import AudioSample
-from src.image_utils import transforms
+from music_recommender.src.audio_processing import AudioSample
+from music_recommender.src.image_utils import transforms
 
 
 class RecommendationDataset(Dataset):

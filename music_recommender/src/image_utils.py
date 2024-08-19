@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as T
 from torchvision.transforms import v2
 
-from src.consts import IMAGE_SIZE
+from music_recommender.src.consts import IMAGE_SIZE
 
 transforms = v2.Compose([
     T.ToTensor(),

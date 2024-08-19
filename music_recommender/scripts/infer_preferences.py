@@ -4,10 +4,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from src.audio_dataset import RecommendationDataset
-from src.image_utils import transforms
-from src.model import ConvNextTinyEncoder
-from src.utils import get_config, get_metric_by_name
+from music_recommender.src.audio_dataset import RecommendationDataset
+from music_recommender.src.image_utils import transforms
+from music_recommender.src.model import ConvNextTinyEncoder
+from music_recommender.src.utils import get_config, get_metric_by_name
 
 
 def get_recommendations(query: torch.tensor, pool: list[torch.tensor], how_many: int):

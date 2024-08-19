@@ -22,7 +22,7 @@ def get_config():
     # Convert argparse Namespace to a dictionary (optional)
     config = vars(args)
 
-    with open(os.path.join("..", config["config"])) as stream:
+    with open(os.path.join("../..", config["config"])) as stream:
         try:
             config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:

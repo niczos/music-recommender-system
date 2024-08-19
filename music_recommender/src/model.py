@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 from torchvision.models import convnext_tiny
 
-from src.dataloaders import get_dataloaders
-from src.image_utils import transforms
+from music_recommender.src.dataloaders import get_dataloaders
+from music_recommender.src.image_utils import transforms
 
 
 class ConvNextTinyEncoder(nn.Module):

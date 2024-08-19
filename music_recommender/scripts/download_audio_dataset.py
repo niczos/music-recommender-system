@@ -4,7 +4,7 @@ import yt_dlp
 import tqdm
 import pandas as pd
 
-from src.youtube_api import get_metadata, youtube_id_to_url, download_audio
+from music_recommender.src.youtube_api import get_metadata, youtube_id_to_url, download_audio
 
 
 def run_data_download(output_folder: str, df: pd.DataFrame):

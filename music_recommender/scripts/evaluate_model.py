@@ -1,10 +1,10 @@
 import os
 
-from src.dataloaders import get_dataloaders
-from src.evaluate import evaluate
-from src.image_utils import transforms
-from src.model import ConvNextTinyEncoder
-from src.utils import get_config
+from music_recommender.src.dataloaders import get_dataloaders
+from music_recommender.src.evaluate import evaluate
+from music_recommender.src.image_utils import transforms
+from music_recommender.src.model import ConvNextTinyEncoder
+from music_recommender.src.utils import get_config
 
 # TODO come back after training
 
