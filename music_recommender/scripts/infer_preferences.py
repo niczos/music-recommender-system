@@ -42,7 +42,7 @@ def main(config):
     norm = get_metric_by_name(name=config["norm"])
 
     recommendations, scores = get_recommendations(query=embeddings[sample_idx], pool=embeddings,
-                                                  how_many=config['how_many'], norm=norm)
+                                                  how_many=config['how_many'], norm=norm, ds=ds)
 
     print(f"Your chosen song is {config['reference_music']}")
     print("Best recommendations are:")
