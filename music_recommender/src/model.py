@@ -13,11 +13,12 @@ class ConvNextTinyEncoder(nn.Module):
         super(ConvNextTinyEncoder, self).__init__()
         self.convnext_tiny = convnext_tiny(pretrained=pretrained if pretrained is True else None)
         self.convnext_tiny.classifier = nn.Identity()
-        if os.path.exists(pretrained):
+        if pretrained is not False and os.path.exists(pretrained):
             self.convnext_tiny.load_state_dict(torch.load(pretrained))
             print(f"Loaded model weights from {pretrained}")
         else:
-            raise ValueError("Pretrained model not found.")
+            pass
+            # raise ValueError("Pretrained model not found.")
 
     def forward(self, images):
         # images: A  tensor of images with shape (N, V, C, H, W)
