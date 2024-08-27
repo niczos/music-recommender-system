@@ -51,7 +51,7 @@ class TripletRecommendationDataset(RecommendationDataset):
         transformed_image = self.transform(spectrogram)
         images.append(transformed_image)
 
-        return torch.stack(images)
+        return images
 
     def read_annotations(self) -> pd.DataFrame:
         df = pd.read_csv(self.annotations_path)

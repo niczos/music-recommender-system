@@ -1,6 +1,9 @@
 import os
 from typing import Callable
+import warnings
 
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=UserWarning)
 from music_recommender.src.consts import IMAGE_SIZE
 import pandas as pd
 import torch
