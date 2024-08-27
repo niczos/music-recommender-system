@@ -61,8 +61,8 @@ if __name__ == "__main__":
                                        temp_dir=temp_dir,
                                        batch_size=2)
 
-    # model = ConvNextTinyEncoder(pretrained=True)
-    model = ConvNextTinyEncoder(pretrained=r"C:\Users\skrzy\Music\sample_music\model_weights.pth")
+    # model = ConvNextTinyEncoder(weights=True)
+    model = ConvNextTinyEncoder(weights=r"C:\Users\skrzy\Music\sample_music\model_weights.pth")
 
     for batch in train_dataloader:
         output = model(batch)

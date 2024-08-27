@@ -56,6 +56,7 @@ class TripletRecommendationDataset(RecommendationDataset):
     def read_annotations(self) -> pd.DataFrame:
         df = pd.read_csv(self.annotations_path)
         df = df[df["type"].isin(self.music_parts)]
+        df = df.dropna(subset="filename")
         how_many = df.groupby("salami_id")["type"].value_counts().reset_index()
         has_duplicates = how_many[how_many["count"] > 1][["salami_id", "type"]]
 
@@ -65,6 +66,7 @@ class TripletRecommendationDataset(RecommendationDataset):
 
         df = df.pivot(index=['salami_id', 'filename'], columns='counted_type', values=['beginning_time', 'end_time'])
         df.columns = df.columns.reorder_levels(order=[1, 0])
+        assert len(df) > 0
         return df.reset_index()
 
 

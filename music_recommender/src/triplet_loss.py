@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 
-
 # Define the Triplet Loss Function
 class TripletLoss(nn.Module):
     def __init__(self, margin=1.0):
@@ -55,6 +54,3 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs, device):
 
         avg_epoch_loss = epoch_loss / len(train_loader)
         print(f'Epoch [{epoch + 1}/{num_epochs}] Average Loss: {avg_epoch_loss:.6f}')
-
-
-
