@@ -22,7 +22,7 @@ def main(config):
                                                            music_parts=config['music_parts'],
                                                            transforms=transforms,
                                                            temp_dir=config['temp_dir'],
-                                                           ), batch_size=32, shuffle=True)
+                                                           ), batch_size=config['batch_size'], shuffle=True)
 
     criterion = TripletLoss(margin=1.0)
     optimizer = optim.Adam(model.parameters(), lr=0.001)

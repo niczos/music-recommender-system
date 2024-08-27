@@ -5,6 +5,7 @@ import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import soundfile as sf
 import os
 
 
@@ -47,19 +48,23 @@ class AudioSample:
         img = img[int(b.y0):int(b.y1), int(b.x0):int(b.x1)]
         return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
+    def to_mp3(self, name:str, output_dir: str, beginning: float | None = None, end: float | None = None) -> np.ndarray:
+        if beginning is not None and end is not None:
+            audio_sample = self.y[int(beginning * self.sample_rate): int(end * self.sample_rate)]
+        else:
+            audio_sample = self.y.copy()
+        filepath = os.path.join(output_dir, f'{name}.wav')
+        sf.write(filepath, audio_sample, self.sample_rate, format='wav', subtype='PCM_24')
 
 if __name__ == "__main__":
     folder_path = r"/home/nika/music-recommender-system/sample_music/"
     temp_dir = r"C:\Users\skrzy\Music\sample_music"
     folder_path = r"C:\Users\skrzy\Music\sample_music"
-    filename = "01 - The Golden Age [Beck： Sea Change].mp3"
+    filename = "Ave Verum Corpus.wav"
     sample_path = os.path.join(folder_path, filename)
     audio_1 = AudioSample(filepath=sample_path, temp_dir=temp_dir)
-    spec_1 = audio_1.to_spectrogram(beginning=0, end=15)
-    print(spec_1)
-    # TODO to nie działa na colabie
-    cv2.imshow("Title", spec_1)
-    cv2.waitKey(0)
+    spec_1 = audio_1.to_mp3(output_dir=r"C:\Users\skrzy\Music", beginning=0, end=15)
+
 
     # for filename in os.listdir(folder_path):
     #     sample_path = os.path.join(folder_path, filename)
