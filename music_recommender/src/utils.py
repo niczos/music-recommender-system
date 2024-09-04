@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import os
 
 import yaml
@@ -28,9 +29,31 @@ def get_config():
         except yaml.YAMLError as exc:
             print(exc)
 
-    json.dumps(config, sort_keys = True, indent = 4)
+    json.dumps(config, sort_keys=True, indent=4)
 
     return config
+
+
+def generate_experiment_name(prefix: str = "experiment") -> str:
+    """
+    Generate a unique experiment name based on the current date and time.
+
+    Args:
+        prefix (str, optional): A prefix for the experiment name. Default is "experiment".
+
+    Returns:
+        str: A unique name for the experiment based on the current date and time.
+    """
+    # Get the current date and time
+    now = datetime.now()
+
+    # Format the date and time as a string
+    date_str = now.strftime("%Y%m%d_%H%M%S")
+
+    # Create the experiment name
+    experiment_name = f"{prefix}_{date_str}"
+
+    return experiment_name
 
 
 def get_metric_by_name(name: str):
