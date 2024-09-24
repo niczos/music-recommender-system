@@ -6,7 +6,7 @@ from music_recommender.src.image_utils import transforms
 from music_recommender.src.model import ConvNextTinyEncoder
 from music_recommender.src.utils import get_config
 
-# TODO come back after training
+# TODO come back after training WIP
 
 if __name__ == "__main__":
     config = get_config()
