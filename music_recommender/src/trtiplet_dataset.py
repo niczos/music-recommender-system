@@ -73,10 +73,11 @@ class TripletRecommendationDataset(RecommendationDataset):
 if __name__ == '__main__':
     config = get_config()
 
-    ds = TripletRecommendationDataset(annotations_file=config['annotations_file'],
-                                      music_dir=config['music_dir'],
-                                      music_parts=config['music_parts'],
-                                      transforms=transforms,
-                                      temp_dir=config['temp_dir'],
-                                      )
-    print(ds[4].shape)
+    ds = TripletRecommendationDataset(
+            annotations_file=config["annotations_file"],
+            music_dir=config["music_dir"],
+            music_parts=config["music_parts"],
+            transforms=transforms,
+            temp_dir=config["temp_dir"],
+        )
+    print(len(ds[4]))

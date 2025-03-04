@@ -1,5 +1,7 @@
-import torch.nn as nn
+import time
+
 import torch
+import torch.nn as nn
 
 
 # Define the Triplet Loss Function
@@ -10,8 +12,10 @@ class TripletLoss(nn.Module):
         self.loss_fn = nn.MarginRankingLoss(margin=margin)
 
     def forward(self, anchor, positive, negative):
-        distance_positive = torch.nn.functional.pairwise_distance(anchor, positive)
-        distance_negative = torch.nn.functional.pairwise_distance(anchor, negative)
+        distance_positive = torch.nn.functional.pairwise_distance(anchor,
+                                                                  positive)
+        distance_negative = torch.nn.functional.pairwise_distance(anchor,
+                                                                  negative)
         target = torch.ones_like(distance_positive)
         loss = self.loss_fn(distance_positive, distance_negative, target)
         return loss
@@ -36,15 +40,19 @@ def validation_step(model, val_loader, criterion, device):
     epoch_loss = 0.0
 
     # Iterate over batches in the validation loader
-    for images, targets in val_loader:
-        images, targets = images.to(device), targets.to(device)
+    for anchor, positive, negative in val_loader:
+        anchor, positive, negative = anchor.to(device), positive.to(
+            device), negative.to(device)
 
         # Forward pass
         with torch.no_grad():
-            outputs = model(images)  # Get model predictions
+            # Forward pass
+            anchor_output = model(anchor)
+            positive_output = model(positive)
+            negative_output = model(negative)
 
-        # Depending on your model's output format, adjust loss calculation
-        loss = criterion(outputs, targets)  # Calculate loss between predictions and true targets
+        # Compute loss
+        loss = criterion(anchor_output, positive_output, negative_output)
 
         epoch_loss += loss.item()  # Accumulate loss for the epoch
 
@@ -57,7 +65,8 @@ def validation_step(model, val_loader, criterion, device):
 # Function to Perform a Single Training Step
 def train_step(model, data, criterion, optimizer, device):
     anchor, positive, negative = data
-    anchor, positive, negative = anchor.to(device), positive.to(device), negative.to(device)
+    anchor, positive, negative = anchor.to(device), positive.to(
+        device), negative.to(device)
 
     # Forward pass
     anchor_output = model(anchor)
@@ -75,48 +84,71 @@ def train_step(model, data, criterion, optimizer, device):
     return loss.item()
 
 
-def train_model(model, train_loader, criterion, optimizer, num_epochs, device, val_loader=None):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device,
+                num_epochs):
     """
-    Trains a model with validation (if provided).
+    Trains a model with detailed logging and timing information.
 
     Args:
-        model (torch.nn.Module): The model to be trained.
-        train_loader (torch.utils.data.DataLoader): The data loader for training data.
-        criterion (torch.nn.Module): The loss function to be used.
-        optimizer (torch.optim.Optimizer): The optimizer to be used for training.
-        num_epochs (int): The number of epochs to train for.
-        device (torch.device): The device to use for training (CPU or GPU).
-        val_loader (torch.utils.data.DataLoader, optional): The data loader for validation data.
+        model: The model to train.
+        train_loader: DataLoader for the training data.
+        val_loader: DataLoader for the validation data (optional).
+        criterion: Loss function.
+        optimizer: Optimizer.
+        device: Device to use (e.g., 'cuda' or 'cpu').
+        num_epochs: Number of training epochs.
 
     Returns:
-        tuple: A tuple containing the following elements:
-            - training_loss_history (list): A list of average training losses for each epoch.
-            - validation_loss_history (list): A list of validation losses for each epoch (if val_loader is provided).
+        Tuple of training loss history and validation loss history (if validation is used).
     """
 
-    model.to(device)
-    model.train()
-
     training_loss_history = []
-    validation_loss_history = []
+    validation_loss_history = [] if val_loader is not None else None
+
+    print(f"Starting training with {num_epochs} epochs on {device}.")
 
     for epoch in range(num_epochs):
+        epoch_start_time = time.time()
         epoch_loss = 0.0
         num_batches = len(train_loader)
 
+        print(f"\n--- Epoch {epoch + 1}/{num_epochs} ---")
+
+        model.train()  # Ensure model is in training mode
+
         for batch_idx, data in enumerate(train_loader):
+            batch_start_time = time.time()
             loss = train_step(model, data, criterion, optimizer, device)
             epoch_loss += loss
 
-        avg_epoch_loss = epoch_loss / len(train_loader)
+            batch_end_time = time.time()
+            batch_time = batch_end_time - batch_start_time
+            print(
+                f"  Batch [{batch_idx + 1}/{num_batches}] Loss: {loss:.6f}, Time: {batch_time:.2f}s",
+                end='\r')  # overwrite previous batch info
+
+        print("")  # add newline after batch progress is completed.
+
+        avg_epoch_loss = epoch_loss / num_batches
         training_loss_history.append(avg_epoch_loss)
 
         if val_loader is not None:
-            validation_loss = validation_step(model, val_loader, criterion, device)
+            model.eval()  # ensure model is in evaluation mode
+            validation_loss = validation_step(model, val_loader, criterion,
+                                              device)
             validation_loss_history.append(validation_loss)
 
-        print(f'Epoch [{epoch + 1}/{num_epochs}] Average Training Loss: {avg_epoch_loss:.6f}')
+        epoch_end_time = time.time()
+        epoch_time = epoch_end_time - epoch_start_time
+
+        print(
+            f'Epoch [{epoch + 1}/{num_epochs}] Average Training Loss: {avg_epoch_loss:.6f}, Epoch Time: {epoch_time:.2f}s')
         if val_loader is not None:
-            print(f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {validation_loss:.6f}')
+            print(
+                f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {validation_loss:.6f}')
+        else:
+            print("No validation performed.")
+
+    print("\nTraining complete.")
 
     return training_loss_history, validation_loss_history
