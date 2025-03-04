@@ -101,6 +101,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
     Returns:
         Tuple of training loss history and validation loss history (if validation is used).
     """
+    model.to(device)
 
     training_loss_history = []
     validation_loss_history = [] if val_loader is not None else None
