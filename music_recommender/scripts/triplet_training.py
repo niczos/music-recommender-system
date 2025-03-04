@@ -1,5 +1,7 @@
 import os
+import warnings
 
+import matplotlib.pyplot as plt
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -10,10 +12,11 @@ from music_recommender.src.triplet_loss import TripletLoss, train_model
 from music_recommender.src.trtiplet_dataset import TripletRecommendationDataset
 from music_recommender.src.utils import get_config, generate_experiment_name
 
-import matplotlib.pyplot as plt
+warnings.filterwarnings('ignore')
 
 
-def plot_loss_history(training_loss_history, validation_loss_history, filepath='loss_history.png'):
+def plot_loss_history(training_loss_history, validation_loss_history,
+                      filepath='loss_history.png'):
     """
     Plots the training and validation loss histories.
 
@@ -77,16 +80,21 @@ def main(config):
     criterion = TripletLoss(margin=config["triplet_loss_margin"])
     optimizer = optim.Adam(model.parameters(), lr=config["lr"])
 
-    training_loss_history, validation_loss_history = train_model(model=model, train_loader=train_loader,
+    training_loss_history, validation_loss_history = train_model(model=model,
+                                                                 train_loader=train_loader,
                                                                  criterion=criterion,
-                                                                 optimizer=optimizer, num_epochs=config["num_epochs"],
+                                                                 optimizer=optimizer,
+                                                                 num_epochs=
+                                                                 config[
+                                                                     "num_epochs"],
                                                                  device=device,
                                                                  val_loader=val_loader)
 
     model.save(path=config["output_dir"])
     plot_loss_history(training_loss_history,
                       validation_loss_history,
-                      filepath=os.path.join(config["output_dir"], 'loss_history.png'))
+                      filepath=os.path.join(config["output_dir"],
+                                            'loss_history.png'))
 
 
 if __name__ == "__main__":
