@@ -86,9 +86,9 @@ def train_step(model, data, criterion, optimizer, device):
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device,
-                num_epochs, checkpoint_path='./checkpoints', resume_epoch=0):
+                num_epochs, checkpoint_path, resume_epoch=0, log_interval=10):
     """
-    Trains a model with detailed logging, timing information, and saves checkpoints.
+    Trains a model with detailed logging, timing information, saves checkpoints, and logs to a CSV.
     Supports resuming training from a specific epoch.
 
     Args:
@@ -101,6 +101,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
         num_epochs: Total number of training epochs.
         checkpoint_path: Path to save model checkpoints.
         resume_epoch: Epoch number to resume training from (0 for starting from scratch).
+        log_interval: Frequency (in batches) to log training progress.
 
     Returns:
         Tuple of training loss history and validation loss history (if validation is used).
@@ -110,9 +111,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
     training_loss_history = []
     validation_loss_history = [] if val_loader is not None else None
 
-    # Create checkpoint directory if it doesn't exist
-    if not os.path.exists(checkpoint_path):
-        os.makedirs(checkpoint_path)
+    # checkpoint directory
+    assert os.path.exists(checkpoint_path), f"Checkpoint path {checkpoint_path} does not exist."
 
     start_epoch = resume_epoch
 
@@ -124,65 +124,97 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             start_epoch = checkpoint['epoch']
+            training_loss_history = checkpoint.get('training_loss_history', [])
+            validation_loss_history = checkpoint.get('validation_loss_history', []) if val_loader is not None else None
             print(f"Loaded checkpoint from epoch {start_epoch}")
-            #Potentially load previous training loss history.
         else:
             print(f"Checkpoint not found for epoch {resume_epoch}. Starting from scratch.")
             start_epoch = 0
 
     print(f"Starting training from epoch {start_epoch + 1} to {num_epochs} on {device}.")
 
-    for epoch in range(start_epoch, num_epochs):
-        epoch_start_time = time.time()
-        epoch_loss = 0.0
-        num_batches = len(train_loader)
+    # Initialize CSV logging
+    csv_log_file = os.path.join(checkpoint_path, "training_log.csv")
+    file_exists = os.path.isfile(csv_log_file)
+    with open(csv_log_file, mode='a', newline='') as csvfile:
+        fieldnames = ['epoch', 'batch', 'batch_loss', 'batch_time', 'avg_epoch_loss', 'validation_loss', 'epoch_time']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
 
-        print(f"\n--- Epoch {epoch + 1}/{num_epochs} ---")
+        for epoch in range(start_epoch, num_epochs):
+            epoch_start_time = time.time()
+            epoch_loss = 0.0
+            num_batches = len(train_loader)
 
-        model.train()  # Ensure model is in training mode
+            print(f"\n--- Epoch {epoch + 1}/{num_epochs} ---")
 
-        for batch_idx, data in enumerate(train_loader):
-            batch_start_time = time.time()
-            loss = train_step(model, data, criterion, optimizer, device)
-            epoch_loss += loss
+            model.train()
 
-            batch_end_time = time.time()
-            batch_time = batch_end_time - batch_start_time
+            for batch_idx, data in enumerate(train_loader):
+                batch_start_time = time.time()
+                loss = train_step(model, data, criterion, optimizer, device)
+                epoch_loss += loss
+
+                batch_end_time = time.time()
+                batch_time = batch_end_time - batch_start_time
+
+                if (batch_idx + 1) % log_interval == 0 or batch_idx == num_batches - 1:
+                    print(
+                        f"  Batch [{batch_idx + 1}/{num_batches}] Loss: {loss:.6f}, Time: {batch_time:.2f}s",
+                        end='\r')
+
+                writer.writerow({
+                    'epoch': epoch + 1,
+                    'batch': batch_idx + 1,
+                    'batch_loss': loss,
+                    'batch_time': batch_time,
+                    'avg_epoch_loss': None,
+                    'validation_loss': None,
+                    'epoch_time': None
+                })
+
+            print("")
+
+            avg_epoch_loss = epoch_loss / num_batches
+            training_loss_history.append(avg_epoch_loss)
+
+            if val_loader is not None:
+                model.eval()
+                validation_loss = validation_step(model, val_loader, criterion, device)
+                validation_loss_history.append(validation_loss)
+
+            epoch_end_time = time.time()
+            epoch_time = epoch_end_time - epoch_start_time
+
             print(
-                f"  Batch [{batch_idx + 1}/{num_batches}] Loss: {loss:.6f}, Time: {batch_time:.2f}s",
-                end='\r')  # overwrite previous batch info
+                f'Epoch [{epoch + 1}/{num_epochs}] Average Training Loss: {avg_epoch_loss:.6f}, Epoch Time: {epoch_time:.2f}s')
+            if val_loader is not None:
+                print(
+                    f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {validation_loss:.6f}')
+            else:
+                print("No validation performed.")
 
-        print("")  # add newline after batch progress is completed.
+            writer.writerow({
+                'epoch': epoch + 1,
+                'batch': None,
+                'batch_loss': None,
+                'batch_time': None,
+                'avg_epoch_loss': avg_epoch_loss,
+                'validation_loss': validation_loss if val_loader else None,
+                'epoch_time': epoch_time
+            })
 
-        avg_epoch_loss = epoch_loss / num_batches
-        training_loss_history.append(avg_epoch_loss)
-
-        if val_loader is not None:
-            model.eval()  # ensure model is in evaluation mode
-            validation_loss = validation_step(model, val_loader, criterion,
-                                              device)
-            validation_loss_history.append(validation_loss)
-
-        epoch_end_time = time.time()
-        epoch_time = epoch_end_time - epoch_start_time
-
-        print(
-            f'Epoch [{epoch + 1}/{num_epochs}] Average Training Loss: {avg_epoch_loss:.6f}, Epoch Time: {epoch_time:.2f}s')
-        if val_loader is not None:
-            print(
-                f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {validation_loss:.6f}')
-        else:
-            print("No validation performed.")
-
-        # Save model checkpoint
-        checkpoint_filename = os.path.join(checkpoint_path, f'model_epoch_{epoch + 1}.pth')
-        torch.save({
-            'epoch': epoch + 1,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': avg_epoch_loss,
-        }, checkpoint_filename)
-        print(f"Saved checkpoint: {checkpoint_filename}")
+            checkpoint_filename = os.path.join(checkpoint_path, f'model_epoch_{epoch + 1}.pth')
+            torch.save({
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': avg_epoch_loss,
+                'training_loss_history': training_loss_history,
+                'validation_loss_history': validation_loss_history,
+            }, checkpoint_filename)
+            print(f"Saved checkpoint: {checkpoint_filename}")
 
     print("\nTraining complete.")
 

@@ -45,8 +45,10 @@ def main(config, resume_epoch=0, checkpoint_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     experiment_name = generate_experiment_name(prefix="triplet_ssrl_learning")
-    results_dir = os.path.join(config["output_dir"], experiment_name)
-    os.mkdir(results_dir)
+
+    if checkpoint_path is not None:
+        results_dir = os.path.join(config["output_dir"], experiment_name)
+        os.mkdir(results_dir)
 
     # Replace with your actual model
     model = ConvNextTinyEncoder(pretrained=False)
@@ -89,13 +91,13 @@ def main(config, resume_epoch=0, checkpoint_path=None):
                                                                      "num_epochs"],
                                                                  device=device,
                                                                  val_loader=val_loader,
-                                                                 checkpoint_path=checkpoint_path,
+                                                                 checkpoint_path=checkpoint_path if checkpoint_path else results_dir,
                                                                  resume_epoch=resume_epoch)
 
-    model.save(path=config["output_dir"])
+    model.save(path=checkpoint_path if checkpoint_path else results_dir)
     plot_loss_history(training_loss_history,
                       validation_loss_history,
-                      filepath=os.path.join(config["output_dir"],
+                      filepath=os.path.join(checkpoint_path if checkpoint_path else results_dir,
                                             'loss_history.png'))
 
 
