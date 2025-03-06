@@ -1,4 +1,6 @@
 import os
+import warnings
+warnings.filterwarnings('ignore')
 
 from music_recommender.src.dataloaders import get_dataloaders
 from music_recommender.src.evaluate import evaluate

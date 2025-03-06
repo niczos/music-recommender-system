@@ -97,8 +97,9 @@ def main(config, resume_epoch=0, checkpoint_path=None):
     model.save(path=checkpoint_path if checkpoint_path else results_dir)
     plot_loss_history(training_loss_history,
                       validation_loss_history,
-                      filepath=os.path.join(checkpoint_path if checkpoint_path else results_dir,
-                                            'loss_history.png'))
+                      filepath=os.path.join(
+                          checkpoint_path if checkpoint_path else results_dir,
+                          'loss_history.png'))
 
 
 if __name__ == "__main__":
