@@ -1,3 +1,4 @@
+import os
 import time
 
 import torch
@@ -85,9 +86,10 @@ def train_step(model, data, criterion, optimizer, device):
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device,
-                num_epochs):
+                num_epochs, checkpoint_path='./checkpoints', resume_epoch=0):
     """
-    Trains a model with detailed logging and timing information.
+    Trains a model with detailed logging, timing information, and saves checkpoints.
+    Supports resuming training from a specific epoch.
 
     Args:
         model: The model to train.
@@ -96,7 +98,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
         criterion: Loss function.
         optimizer: Optimizer.
         device: Device to use (e.g., 'cuda' or 'cpu').
-        num_epochs: Number of training epochs.
+        num_epochs: Total number of training epochs.
+        checkpoint_path: Path to save model checkpoints.
+        resume_epoch: Epoch number to resume training from (0 for starting from scratch).
 
     Returns:
         Tuple of training loss history and validation loss history (if validation is used).
@@ -106,9 +110,29 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
     training_loss_history = []
     validation_loss_history = [] if val_loader is not None else None
 
-    print(f"Starting training with {num_epochs} epochs on {device}.")
+    # Create checkpoint directory if it doesn't exist
+    if not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
 
-    for epoch in range(num_epochs):
+    start_epoch = resume_epoch
+
+    if resume_epoch > 0:
+        checkpoint_filename = os.path.join(checkpoint_path, f'model_epoch_{resume_epoch}.pth')
+        if os.path.isfile(checkpoint_filename):
+            print(f"Resuming training from checkpoint: {checkpoint_filename}")
+            checkpoint = torch.load(checkpoint_filename)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            start_epoch = checkpoint['epoch']
+            print(f"Loaded checkpoint from epoch {start_epoch}")
+            #Potentially load previous training loss history.
+        else:
+            print(f"Checkpoint not found for epoch {resume_epoch}. Starting from scratch.")
+            start_epoch = 0
+
+    print(f"Starting training from epoch {start_epoch + 1} to {num_epochs} on {device}.")
+
+    for epoch in range(start_epoch, num_epochs):
         epoch_start_time = time.time()
         epoch_loss = 0.0
         num_batches = len(train_loader)
@@ -149,6 +173,16 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
                 f'Epoch [{epoch + 1}/{num_epochs}] Validation Loss: {validation_loss:.6f}')
         else:
             print("No validation performed.")
+
+        # Save model checkpoint
+        checkpoint_filename = os.path.join(checkpoint_path, f'model_epoch_{epoch + 1}.pth')
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': avg_epoch_loss,
+        }, checkpoint_filename)
+        print(f"Saved checkpoint: {checkpoint_filename}")
 
     print("\nTraining complete.")
 

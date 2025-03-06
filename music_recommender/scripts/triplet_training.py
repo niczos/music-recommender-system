@@ -41,7 +41,7 @@ def plot_loss_history(training_loss_history, validation_loss_history,
     plt.show()
 
 
-def main(config):
+def main(config, resume_epoch=0, checkpoint_path=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     experiment_name = generate_experiment_name(prefix="triplet_ssrl_learning")
@@ -88,7 +88,9 @@ def main(config):
                                                                  config[
                                                                      "num_epochs"],
                                                                  device=device,
-                                                                 val_loader=val_loader)
+                                                                 val_loader=val_loader,
+                                                                 checkpoint_path=checkpoint_path,
+                                                                 resume_epoch=resume_epoch)
 
     model.save(path=config["output_dir"])
     plot_loss_history(training_loss_history,
