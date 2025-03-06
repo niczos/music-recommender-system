@@ -1,3 +1,4 @@
+import json
 import os
 import warnings
 
@@ -46,9 +47,19 @@ def main(config, resume_epoch=0, checkpoint_path=None):
 
     experiment_name = generate_experiment_name(prefix="triplet_ssrl_learning")
 
-    if checkpoint_path is not None:
+    if checkpoint_path is None:
         results_dir = os.path.join(config["output_dir"], experiment_name)
+        # Copy config file to results directory
+        config_filename = "config.json"
         os.mkdir(results_dir)
+    else:
+        config_filename = "new_config.json"
+        results_dir = checkpoint_path
+
+    config_path = os.path.join(results_dir, config_filename)
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)  # Save config to results dir.
+    print(f"Config file copied to: {config_path}")
 
     # Replace with your actual model
     model = ConvNextTinyEncoder(pretrained=False)
@@ -91,14 +102,14 @@ def main(config, resume_epoch=0, checkpoint_path=None):
                                                                      "num_epochs"],
                                                                  device=device,
                                                                  val_loader=val_loader,
-                                                                 checkpoint_path=checkpoint_path if checkpoint_path else results_dir,
+                                                                 checkpoint_path=results_dir,
                                                                  resume_epoch=resume_epoch)
 
-    model.save(path=checkpoint_path if checkpoint_path else results_dir)
+    model.save(path=results_dir)
     plot_loss_history(training_loss_history,
                       validation_loss_history,
                       filepath=os.path.join(
-                          checkpoint_path if checkpoint_path else results_dir,
+                          results_dir,
                           'loss_history.png'))
 
 
