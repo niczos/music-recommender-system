@@ -87,10 +87,10 @@ def train_step(model, data, criterion, optimizer, device):
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device,
-                num_epochs, checkpoint_path, resume_epoch=0, log_interval=10):
+                num_epochs, checkpoint_path, resume_epoch=0, log_interval=10, patience=5):
     """
     Trains a model with detailed logging, timing information, saves checkpoints, and logs to a CSV.
-    Supports resuming training from a specific epoch.
+    Supports resuming training from a specific epoch and early stopping.
 
     Args:
         model: The model to train.
@@ -103,6 +103,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
         checkpoint_path: Path to save model checkpoints.
         resume_epoch: Epoch number to resume training from (0 for starting from scratch).
         log_interval: Frequency (in batches) to log training progress.
+        patience: Number of epochs to wait for improvement before early stopping.
 
     Returns:
         Tuple of training loss history and validation loss history (if validation is used).
@@ -142,6 +143,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         if not file_exists:
             writer.writeheader()
+
+        best_val_loss = float('inf')
+        epochs_no_improve = 0
 
         for epoch in range(start_epoch, num_epochs):
             epoch_start_time = time.time()
@@ -185,6 +189,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
                 validation_loss = validation_step(model, val_loader, criterion, device)
                 validation_loss_history.append(validation_loss)
 
+                if validation_loss < best_val_loss:
+                    best_val_loss = validation_loss
+                    epochs_no_improve = 0
+                else:
+                    epochs_no_improve += 1
+
             epoch_end_time = time.time()
             epoch_time = epoch_end_time - epoch_start_time
 
@@ -216,6 +226,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device,
                 'validation_loss_history': validation_loss_history,
             }, checkpoint_filename)
             print(f"Saved checkpoint: {checkpoint_filename}")
+
+            if epochs_no_improve == patience:
+                print(f"Early stopping triggered after {patience} epochs without improvement.")
+                break
 
     print("\nTraining complete.")
 
