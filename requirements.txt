@@ -1,6 +1,6 @@
 requests~=2.32.3
 numpy~=1.26.4
-torch~=2.5.1
+torch~=2.6.0
 pandas~=2.2.2
 torchvision~=0.21.0
 librosa~=0.10.2.post1
