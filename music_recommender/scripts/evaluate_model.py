@@ -10,7 +10,7 @@ from music_recommender.src.model import ConvNextTinyEncoder
 from music_recommender.src.utils import get_config
 
 
-def main():
+def main(config):
     # ["Chorus", "Verse"]
     train_dataloader = get_dataloaders(
         annotations_file=config['annotations_file'],
