@@ -1,5 +1,6 @@
 import os
 import warnings
+
 warnings.filterwarnings('ignore')
 
 from music_recommender.src.dataloaders import get_dataloaders
@@ -9,18 +10,24 @@ from music_recommender.src.model import ConvNextTinyEncoder
 from music_recommender.src.utils import get_config
 
 
-if __name__ == "__main__":
-    config = get_config()
+def main():
     # ["Chorus", "Verse"]
-    train_dataloader = get_dataloaders(annotations_file=config['annotations_file'],
-                                       music_dir=config['output_folder'],
-                                       music_parts=config['music_parts'],
-                                       transforms=transforms,
-                                       temp_dir=config['temp_dir'],
-                                       batch_size=config['batch_size'])
+    train_dataloader = get_dataloaders(
+        annotations_file=config['annotations_file'],
+        music_dir=config['output_folder'],
+        music_parts=config['music_parts'],
+        transforms=transforms,
+        temp_dir=config['temp_dir'],
+        batch_size=config['batch_size'])
 
-    model = ConvNextTinyEncoder(pretrained=os.path.join(config["models_path"], "model_weights.pth"))
+    model = ConvNextTinyEncoder(
+        pretrained=os.path.join(config["models_path"], "model_weights.pth"))
 
     metrics = evaluate(model=model, data={train_dataloader: train_dataloader})
 
     print(metrics)
+
+
+if __name__ == "__main__":
+    config = get_config()
+    main(config)
