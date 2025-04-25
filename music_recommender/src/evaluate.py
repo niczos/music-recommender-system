@@ -46,6 +46,8 @@ def evaluate_on_data(model: torch.nn.Module, dataloader: torch.utils.data.DataLo
 
 
 def evaluate(model: torch.nn.Module, data: dict[str, torch.utils.data.DataLoader]):
+    results_dict = {}
     for dataset_name, dataloader in data.items():
-        evaluate_on_data(model, dataloader=dataloader)
-    return None
+        results_dict[dataset_name] = evaluate_on_data(model, dataloader=dataloader)
+
+    return results_dict

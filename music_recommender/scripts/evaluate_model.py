@@ -20,7 +20,8 @@ if __name__ == "__main__":
                                        temp_dir=config['temp_dir'],
                                        batch_size=config['batch_size'])
 
-    # model = ConvNextTinyEncoder(pretrained=True)
     model = ConvNextTinyEncoder(pretrained=os.path.join(config["models_path"], "model_weights.pth"))
 
     metrics = evaluate(model=model, data={train_dataloader: train_dataloader})
+
+    print(metrics)
