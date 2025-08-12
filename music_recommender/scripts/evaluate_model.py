@@ -1,13 +1,14 @@
 import os
 import warnings
 
+import torch
 from torch.utils.data import DataLoader
 
+from music_recommender.src.triplet_loss import TripletLoss
 from music_recommender.src.trtiplet_dataset import TripletRecommendationDataset
 
 warnings.filterwarnings('ignore')
 
-from music_recommender.src.dataloaders import get_dataloaders
 from music_recommender.src.evaluate import evaluate
 from music_recommender.src.image_utils import transforms
 from music_recommender.src.model import ConvNextTinyEncoder
@@ -28,11 +29,12 @@ def main(config):
         shuffle=False,
     )
 
-
     model = ConvNextTinyEncoder(
         pretrained=os.path.join(config["models_path"], "model_weights.pth"))
-
-    metrics = evaluate(model=model, data={"val_loader": val_loader})
+    criterion = TripletLoss(margin=config["triplet_loss_margin"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    metrics = evaluate(model=model, data={"val_loader": val_loader},
+                       criterion=criterion, device=device)
 
     print(metrics)
 
