@@ -14,7 +14,7 @@ def main(config):
     # ["Chorus", "Verse"]
     train_dataloader = get_dataloaders(
         annotations_file=config['annotations_file'],
-        music_dir=config['output_folder'],
+        music_dir=config['music_dir'],
         music_parts=config['music_parts'],
         transforms=transforms,
         temp_dir=config['temp_dir'],
