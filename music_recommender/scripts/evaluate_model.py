@@ -1,6 +1,10 @@
 import os
 import warnings
 
+from torch.utils.data import DataLoader
+
+from music_recommender.src.trtiplet_dataset import TripletRecommendationDataset
+
 warnings.filterwarnings('ignore')
 
 from music_recommender.src.dataloaders import get_dataloaders
@@ -12,18 +16,23 @@ from music_recommender.src.utils import get_config
 
 def main(config):
     # ["Chorus", "Verse"]
-    train_dataloader = get_dataloaders(
-        annotations_file=config['annotations_file'],
-        music_dir=config['music_dir'],
-        music_parts=config['music_parts'],
-        transforms=transforms,
-        temp_dir=config['temp_dir'],
-        batch_size=config['batch_size'])
+    val_loader = DataLoader(
+        TripletRecommendationDataset(
+            annotations_file=config["val_annotations_file"],
+            music_dir=config["music_dir"],
+            music_parts=config["music_parts"],
+            transforms=transforms,
+            temp_dir=config["temp_dir"],
+        ),
+        batch_size=config["batch_size"],
+        shuffle=False,
+    )
+
 
     model = ConvNextTinyEncoder(
         pretrained=os.path.join(config["models_path"], "model_weights.pth"))
 
-    metrics = evaluate(model=model, data={train_dataloader: train_dataloader})
+    metrics = evaluate(model=model, data={"val_loader": val_loader})
 
     print(metrics)
 
