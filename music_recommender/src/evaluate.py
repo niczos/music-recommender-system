@@ -13,6 +13,6 @@ def evaluate_on_data(model: torch.nn.Module, dataloader: torch.utils.data.DataLo
 def evaluate(model: torch.nn.Module, data: dict[str, torch.utils.data.DataLoader], criterion, device):
     results_dict = {}
     for dataset_name, dataloader in data.items():
-        results_dict[dataset_name] = evaluate_on_data(model, dataloader=dataloader, criterion, device)
+        results_dict[dataset_name] = evaluate_on_data(model, dataloader=dataloader, criterion=criterion, device=device)
 
     return results_dict
