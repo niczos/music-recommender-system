@@ -38,7 +38,7 @@ def validation_step(model, val_loader, criterion, device):
     """
 
     model.eval()  # Set model to evaluation mode
-
+    model.to(device)
     epoch_loss = 0.0
 
     # Iterate over batches in the validation loader
