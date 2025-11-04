@@ -1,6 +1,7 @@
-annotations/
-salami_youtube_pairings.csv
-sample_music/
-spectrograms/
-my_venv/
-.vs/
+
+
+/env
+/music_recommender/scripts/__pycache__
+/music_recommender/src/__pycache__
+/music_recommender/__pycache__
+/.vs
