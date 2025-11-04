@@ -1,5 +1,6 @@
 
-
+/data/cut_fragments
+/data/songs
 /env
 /music_recommender/scripts/__pycache__
 /music_recommender/src/__pycache__
