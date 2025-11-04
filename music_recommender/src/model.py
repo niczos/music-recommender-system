@@ -1,71 +1,93 @@
 import os
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
-from torchvision.models import convnext_tiny
-
-from music_recommender.src.dataloaders import get_dataloaders
-from music_recommender.src.image_utils import transforms
+import torch.nn.functional as F
+from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
 
 
 class ConvNextTinyEncoder(nn.Module):
-    def __init__(self, pretrained: bool | str = True):
-        super(ConvNextTinyEncoder, self).__init__()
-        self.convnext_tiny = convnext_tiny(pretrained=pretrained if pretrained is True else None)
-        self.convnext_tiny.classifier = nn.Identity()
-        if pretrained is not False and os.path.exists(pretrained):
-            self.convnext_tiny.load_state_dict(torch.load(pretrained))
-            print(f"Loaded model weights from {pretrained}")
+    """
+    Encoder do spektrogramów pod Triplet Loss:
+      - wejście: (B, C, H, W) – C może być 1 (mono)
+      - automatycznie powiela 1→3 kanały i skaluje do 224x224
+      - backbone: ConvNeXt-Tiny (ImageNet)
+      - head: GlobalAvgPool + Linear -> embedding_dim
+      - opcjonalna L2-normalizacja embeddingu
+
+    Parametry:
+      embedding_dim (int): wymiar wektora wyjściowego
+      pretrained: 'DEFAULT' (wagi ImageNet), True (również DEFAULT), False (bez wag) lub ścieżka .pth
+      normalize (bool): L2-normalizacja na wyjściu (zalecane z TripletLoss l2_normalize=True)
+    """
+    def __init__(
+        self,
+        embedding_dim: int = 128,
+        pretrained: Union[str, bool] = 'DEFAULT',
+        normalize: bool = True,
+    ):
+        super().__init__()
+
+        # 1) Backbone
+        if pretrained in ('DEFAULT', True):
+            backbone = convnext_tiny(weights=ConvNeXt_Tiny_Weights.DEFAULT)
         else:
-            pass
-            # raise ValueError("Pretrained model not found.")
+            backbone = convnext_tiny(weights=None)
 
-    def forward(self, images):
-        # images: A  tensor of images with shape (N, V, C, H, W)
-        if images.ndimension() == 4:  # If single image, add batch dimension
-            images = images.unsqueeze(0)
+        # 2) Usuwamy klasyfikator, zostawiamy featurizer
+        backbone.classifier = nn.Identity()
+        self.backbone = backbone
 
-        embeddings = []
-        for view_nr in range(images.shape[1]):
-            embedding = self.convnext_tiny(images[:, view_nr])  # Get the embedding from ConvNextTiny
-            embeddings.append(embedding)
+        # 3) Head do embeddingu
+        # ConvNeXt-Tiny daje typowo 768 kanałów
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.proj = nn.Linear(768, embedding_dim)
 
-        # Concatenate embeddings along the feature dimension
-        concatenated_embedding = torch.cat(embeddings, dim=1)
-        return concatenated_embedding.squeeze(dim=(2, 3))
+        self.normalize = normalize
+
+        # 4) Wczytanie wag z pliku (opcjonalnie)
+        if isinstance(pretrained, str) and pretrained not in ('DEFAULT',):
+            if os.path.exists(pretrained):
+                state = torch.load(pretrained, map_location='cpu')
+                missing, unexpected = self.load_state_dict(state, strict=False)
+                print(f"[ConvNextTinyEncoder] Loaded weights from {pretrained} "
+                      f"(missing={missing}, unexpected={unexpected})")
+            else:
+                print(f"[ConvNextTinyEncoder] Warning: weights file not found: {pretrained}")
+
+    @staticmethod
+    def _ensure_3ch_and_resize(x: torch.Tensor, size: int = 224) -> torch.Tensor:
+        """
+        x: (B, C, H, W)
+        - gdy C == 1 -> powiel do 3
+        - resize do (size, size) bilinearnie
+        """
+        if x.dim() != 4:
+            raise ValueError(f"Expected 4D tensor (B,C,H,W), got {x.shape}")
+        if x.size(1) == 1:
+            x = x.repeat(1, 3, 1, 1)
+        if x.shape[-2] != size or x.shape[-1] != size:
+            x = F.interpolate(x, size=(size, size), mode='bilinear', align_corners=False)
+        return x
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, C, H, W)
+        x = self._ensure_3ch_and_resize(x, size=224)
+
+        feats = self.backbone(x)              # (B, 768, H', W') lub (B, 768) zależnie od wersji
+        if feats.dim() == 4:
+            feats = self.pool(feats).flatten(1)  # (B, 768)
+
+        emb = self.proj(feats)                # (B, embedding_dim)
+
+        if self.normalize:
+            emb = F.normalize(emb, p=2, dim=1)
+
+        return emb
 
     def save(self, path: str):
+        os.makedirs(path, exist_ok=True)
         model_path = os.path.join(path, 'model_weights.pth')
-        print(f"Saving model to {model_path}")
-        torch.save(self.convnext_tiny.state_dict(), model_path)
-
-
-    def get_embeddings(self, dataloader: torch.utils.data.DataLoader):
-        with torch.no_grad():
-            embeddings = []
-            for batch in dataloader:
-                batch_of_embeddings = self.forward(batch).detach()
-                embeddings.append(batch_of_embeddings)
-        return torch.concat(embeddings)
-
-
-if __name__ == "__main__":
-
-    output_folder = r"C:\Users\skrzy\Music\sample_music"
-    annotations_file = os.path.join(output_folder, 'metadata.csv')
-    temp_dir = output_folder
-    train_dataloader = get_dataloaders(annotations_file=annotations_file,
-                                       music_dir=output_folder,
-                                       music_parts=["Chorus", "Verse"],
-                                       transforms=transforms,
-                                       temp_dir=temp_dir,
-                                       batch_size=2)
-
-    # model = ConvNextTinyEncoder(weights=True)
-    model = ConvNextTinyEncoder(weights=r"C:\Users\skrzy\Music\sample_music\model_weights.pth")
-
-    for batch in train_dataloader:
-        output = model(batch)
-        print(output.shape)  # The shape will depend on the number of images and feature size
-
-    model.save(r"C:\Users\skrzy\Music\sample_music")
+        torch.save(self.state_dict(), model_path)
+        print(f"[ConvNextTinyEncoder] Saved weights to {model_path}")
